@@ -464,7 +464,9 @@ const App: React.FC = () => {
           setInventory(prev => prev.map(i => i.sku === data.sku ? { ...i, ...data } : i));
         }
       } else {
-        const newItem: InventoryItem = { ...data, quantity: 0, status: 'disponivel', batch: 'N/A', expiry: 'N/A', location: 'DOCA-01', minQty: 10, maxQty: 1000 };
+        // Gerar Código do Produto autonumérico (0 a 999999)
+        const generatedCode = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+        const newItem: InventoryItem = { ...data, sku: generatedCode, quantity: 0, status: 'disponivel', batch: 'N/A', expiry: 'N/A', location: 'DOCA-01', minQty: 10, maxQty: 1000 };
         const { error } = await supabase.from('inventory').insert([{
           sku: newItem.sku,
           name: newItem.name,
@@ -480,7 +482,7 @@ const App: React.FC = () => {
 
         if (!error) {
           setInventory(prev => [...prev, newItem]);
-          await recordMovement('entrada', newItem, 0, 'Criação de novo SKU mestre');
+          await recordMovement('entrada', newItem, 0, 'Criação de novo Código de Produto');
         }
       }
     } else if (type === 'vendor') {

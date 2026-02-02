@@ -242,7 +242,7 @@ export const Receiving: React.FC<ReceivingProps> = ({ onFinalize, availablePOs }
                           <img src={item.imageUrl} alt={item.name} className="size-14 rounded-lg object-cover" />
                           <div className="flex flex-col min-w-0">
                             <span className="text-base font-black truncate mb-0.5">{item.name}</span>
-                            <span className="text-[10px] font-black text-primary uppercase">SKU: {item.sku}</span>
+                            <span className="text-[10px] font-black text-primary uppercase">Cód. Produto: {item.sku}</span>
                           </div>
                         </div>
                       </td>

@@ -88,7 +88,10 @@ export const MasterData: React.FC<MasterDataProps> = ({ inventory, vendors, vehi
 
       if (activeTab === 'itens') {
         mappedData = data.map((row: any) => {
-          const sku = row['SKU'] ? String(row['SKU']).trim() : `AUTO-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
+          // Gerar código de produto numérico (0 a 999999) se não houver SKU
+          const generatedCode = Math.floor(Math.random() * 1000000).toString().padStart(6, '0');
+          const sku = row['SKU'] || row['Código do Produto'] || generatedCode;
+
           return {
             sku: sku,
             name: row['Nome'] || 'Produto Sem Nome',
@@ -232,7 +235,7 @@ export const MasterData: React.FC<MasterDataProps> = ({ inventory, vendors, vehi
                 {activeTab === 'itens' && (
                   <>
                     <th className="px-8 py-6">Identificação / Produto</th>
-                    <th className="px-8 py-6">SKU Único</th>
+                    <th className="px-8 py-6">Código do Produto</th>
                     <th className="px-8 py-6">Categoria</th>
                     <th className="px-8 py-6 text-right">Gestão</th>
                   </>
@@ -378,8 +381,14 @@ export const MasterData: React.FC<MasterDataProps> = ({ inventory, vendors, vehi
                       <input required value={formData.name || ''} onChange={e => setFormData({ ...formData, name: e.target.value })} className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 focus:border-primary focus:ring-0 rounded-2xl font-bold text-sm" placeholder="Ex: Monitor UltraWide 34..." />
                     </div>
                     <div className="space-y-2">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Código SKU</label>
-                      <input required disabled={isEditing} value={formData.sku || ''} onChange={e => setFormData({ ...formData, sku: e.target.value.toUpperCase() })} className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl font-black text-sm text-primary disabled:opacity-50" placeholder="SKU-XXXXX" />
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Código do Produto</label>
+                      <input
+                        required
+                        disabled
+                        value={formData.sku || 'Gerado Automaticamente'}
+                        className="w-full px-5 py-4 bg-slate-50 dark:bg-slate-800 border-2 border-slate-100 dark:border-slate-700 rounded-2xl font-black text-sm text-primary opacity-70"
+                        placeholder="000000"
+                      />
                     </div>
                     <div className="space-y-2">
                       <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest px-1">Categoria</label>

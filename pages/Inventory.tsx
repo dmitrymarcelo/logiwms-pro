@@ -96,7 +96,7 @@ export const Inventory: React.FC<InventoryProps> = ({ items = [], onUpdateItem, 
                       <img src={item.imageUrl} alt={item.name} className="size-14 rounded-2xl object-cover border-2 border-white dark:border-slate-800 shadow-sm" />
                       <div>
                         <p className="text-sm font-black text-slate-800 dark:text-white truncate max-w-[200px]">{item.name}</p>
-                        <span className="text-[10px] font-black text-primary uppercase tracking-wider">SKU: {item.sku}</span>
+                        <span className="text-[10px] font-black text-primary uppercase tracking-wider">Cód. Produto: {item.sku}</span>
                       </div>
                     </div>
                   </td>

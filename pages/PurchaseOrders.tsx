@@ -287,7 +287,7 @@ export const PurchaseOrders: React.FC<PurchaseOrdersProps> = ({
             <thead>
               <tr className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800 text-[10px] font-black text-slate-400 uppercase tracking-widest">
                 <th className="px-8 py-6">ID Pedido</th>
-                <th className="px-8 py-6">Produto / SKU</th>
+                <th className="px-8 py-6">Produto / Cód. Produto</th>
                 <th className="px-8 py-6">Fornecedor / Origem</th>
                 <th className="px-8 py-6 text-center">Status</th>
                 <th className="px-8 py-6 text-center">Prioridade</th>
@@ -304,7 +304,7 @@ export const PurchaseOrders: React.FC<PurchaseOrdersProps> = ({
                   <td className="px-8 py-5">
                     <div className="flex flex-col max-w-[200px]">
                       <span className="text-sm font-black text-slate-800 dark:text-white truncate" title={order.items[0]?.name}>{order.items[0]?.name || 'N/A'}</span>
-                      <span className="text-[10px] text-primary font-black uppercase tracking-tight">SKU: {order.items[0]?.sku || '---'}</span>
+                      <span className="text-[10px] text-primary font-black uppercase tracking-tight">Cód. Produto: {order.items[0]?.sku || '---'}</span>
                       {order.items.length > 1 && (
                         <span className="text-[9px] font-black text-slate-400 mt-1 uppercase tracking-widest">+ {order.items.length - 1} outros</span>
                       )}
@@ -519,7 +519,7 @@ export const PurchaseOrders: React.FC<PurchaseOrdersProps> = ({
 
                   <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
                     <div className="md:col-span-8">
-                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Produto / SKU</label>
+                      <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 block">Produto / Cód. Produto</label>
                       <select
                         value={draftSku}
                         onChange={e => setDraftSku(e.target.value)}
@@ -566,7 +566,7 @@ export const PurchaseOrders: React.FC<PurchaseOrdersProps> = ({
                             </div>
                             <div>
                               <p className="text-base font-black text-slate-800 dark:text-white leading-tight">{item.name}</p>
-                              <p className="text-[10px] font-black text-primary uppercase mt-1">SKU: {item.sku}</p>
+                              <p className="text-[10px] font-black text-primary uppercase mt-1">Cód. Produto: {item.sku}</p>
                             </div>
                           </div>
                           <div className="w-32 text-center">
@@ -628,7 +628,7 @@ export const PurchaseOrders: React.FC<PurchaseOrdersProps> = ({
                       </div>
                       <div>
                         <p className="font-black text-slate-800 dark:text-white leading-tight">{item.name}</p>
-                        <p className="text-[10px] text-primary font-black uppercase tracking-tighter mt-1">SKU: {item.sku}</p>
+                        <p className="text-[10px] text-primary font-black uppercase tracking-tighter mt-1">Cód. Produto: {item.sku}</p>
                       </div>
                     </div>
                     <div className="text-right">
@@ -691,7 +691,7 @@ export const PurchaseOrders: React.FC<PurchaseOrdersProps> = ({
                     <div key={idx} className="flex justify-between items-center text-sm border-b border-dashed border-slate-200 dark:border-slate-700 pb-2 last:border-0 last:pb-0">
                       <div className="flex flex-col">
                         <span className="font-bold text-slate-700 dark:text-slate-200">{item.name}</span>
-                        <span className="text-[10px] font-bold text-primary uppercase tracking-tighter">SKU: {item.sku}</span>
+                        <span className="text-[10px] font-bold text-primary uppercase tracking-tighter">Cód. Produto: {item.sku}</span>
                       </div>
                       <span className="font-black text-slate-800 dark:text-white bg-white dark:bg-slate-800 px-3 py-1 rounded-lg border border-slate-100 dark:border-slate-700 shadow-sm">{item.qty} un.</span>
                     </div>

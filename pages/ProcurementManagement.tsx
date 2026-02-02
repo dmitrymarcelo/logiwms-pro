@@ -155,7 +155,7 @@ export const ProcurementManagement: React.FC<ProcurementManagementProps> = ({
                 <div key={i} className="flex justify-between items-center p-4 border border-slate-100 dark:border-slate-800 rounded-2xl">
                   <div>
                     <p className="text-xs font-black text-slate-800 dark:text-white leading-tight">{item.name}</p>
-                    <p className="text-[10px] font-bold text-slate-400 uppercase">SKU: {item.sku}</p>
+                    <p className="text-[10px] font-bold text-slate-400 uppercase">Cód. Produto: {item.sku}</p>
                   </div>
                   <div className="text-right">
                     <p className="text-xs font-black text-slate-800 dark:text-white">{item.qty} un.</p>

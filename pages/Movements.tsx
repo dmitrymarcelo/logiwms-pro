@@ -82,7 +82,7 @@ export const Movements: React.FC<MovementsProps> = ({ movements }) => {
               <tr className="bg-slate-50 dark:bg-slate-800/50 text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100 dark:border-slate-800">
                 <th className="px-8 py-6">Data / Hora</th>
                 <th className="px-8 py-6 text-center">Tipo</th>
-                <th className="px-8 py-6">Produto / SKU</th>
+                <th className="px-8 py-6">Produto / Cód. Produto</th>
                 <th className="px-8 py-6 text-center">Qtd.</th>
                 <th className="px-8 py-6">Usuário</th>
                 <th className="px-8 py-6">Origem/Destino</th>
@@ -98,15 +98,15 @@ export const Movements: React.FC<MovementsProps> = ({ movements }) => {
                   </td>
                   <td className="px-8 py-5 text-center">
                     <span className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-tight ${move.type === 'entrada' ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' :
-                        move.type === 'saida' ? 'bg-red-100 text-red-700 border border-red-200' :
-                          'bg-blue-100 text-blue-700 border border-blue-200'
+                      move.type === 'saida' ? 'bg-red-100 text-red-700 border border-red-200' :
+                        'bg-blue-100 text-blue-700 border border-blue-200'
                       }`}>
                       {move.type}
                     </span>
                   </td>
                   <td className="px-8 py-5">
                     <p className="text-sm font-black text-slate-800 dark:text-white truncate max-w-[200px] leading-tight">{move.productName}</p>
-                    <p className="text-[10px] font-black text-primary uppercase">SKU: {move.sku}</p>
+                    <p className="text-[10px] font-black text-primary uppercase">Cód. Produto: {move.sku}</p>
                   </td>
                   <td className="px-8 py-5 text-center font-black text-sm">
                     <span className={move.type === 'saida' ? 'text-red-500' : move.type === 'entrada' ? 'text-emerald-600' : 'text-primary'}>
