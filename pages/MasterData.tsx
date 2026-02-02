@@ -87,20 +87,23 @@ export const MasterData: React.FC<MasterDataProps> = ({ inventory, vendors, vehi
       const type = activeTab === 'itens' ? 'item' : activeTab === 'fornecedores' ? 'vendor' : 'vehicle';
 
       if (activeTab === 'itens') {
-        mappedData = data.map((row: any) => ({
-          sku: row['SKU'],
-          name: row['Nome'],
-          unit: row['Unidade de Medida'] || 'UN',
-          category: row['Categoria'],
-          quantity: Number(row['Quantidade']) || 0,
-          minQty: Number(row['MinQty']) || 10,
-          maxQty: Number(row['MaxQty']) || 1000,
-          imageUrl: row['URL'] || 'https://images.unsplash.com/photo-1553413077-190dd305871c?w=400&q=80',
-          status: 'disponivel',
-          batch: 'N/A',
-          expiry: 'N/A',
-          location: 'DOCA-01'
-        }));
+        mappedData = data.map((row: any) => {
+          const sku = row['SKU'] ? String(row['SKU']).trim() : `AUTO-${Math.random().toString(36).substring(2, 9).toUpperCase()}`;
+          return {
+            sku: sku,
+            name: row['Nome'] || 'Produto Sem Nome',
+            unit: row['Unidade de Medida'] || 'UN',
+            category: row['Categoria'] || 'Geral',
+            quantity: Number(row['Quantidade']) || 0,
+            minQty: Number(row['MinQty']) || 10,
+            maxQty: Number(row['MaxQty']) || 1000,
+            imageUrl: row['URL'] || 'https://images.unsplash.com/photo-1553413077-190dd305871c?w=400&q=80',
+            status: 'disponivel',
+            batch: 'N/A',
+            expiry: 'N/A',
+            location: 'DOCA-01'
+          };
+        });
       } else if (activeTab === 'fornecedores') {
         mappedData = data.map((row: any) => ({
           name: row['NOME'],
