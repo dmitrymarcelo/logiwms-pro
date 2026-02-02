@@ -96,7 +96,7 @@ export const MasterData: React.FC<MasterDataProps> = ({ inventory, vendors, vehi
             name: row['Nome'] || 'Produto Sem Nome',
             unit: row['Unidade de Medida'] || 'UN',
             category: 'Geral', // Categoria padrão caso não venha no Excel
-            quantity: Number(row['Quantidade']) || 0,
+            quantity: Math.round(Number(row['Quantidade']) || 0),
             minQty: 10,  // Valor padrão
             maxQty: 1000, // Valor padrão
             imageUrl: 'https://images.unsplash.com/photo-1553413077-190dd305871c?w=400&q=80',

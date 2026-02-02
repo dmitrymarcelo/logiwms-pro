@@ -530,11 +530,11 @@ const App: React.FC = () => {
           category: d.category,
           unit: d.unit,
           image_url: d.imageUrl,
-          quantity: d.quantity,
+          quantity: Math.round(Number(d.quantity) || 0),
           status: d.status,
           location: d.location,
-          min_qty: d.minQty,
-          max_qty: d.maxQty
+          min_qty: Math.round(Number(d.minQty) || 10),
+          max_qty: Math.round(Number(d.maxQty) || 1000)
         };
         // Se o SKU foi fornecido manualmente ou veio de um código existente, mantemos
         // Caso contrário, deixamos o DEFAULT do banco agir (omitindo a chave sku)
