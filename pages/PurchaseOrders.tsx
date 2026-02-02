@@ -186,9 +186,9 @@ export const PurchaseOrders: React.FC<PurchaseOrdersProps> = ({
         id: `Q1-${Date.now()}`,
         vendorId: quote1Vendor,
         vendorName: vendors.find(v => v.id === quote1Vendor)?.name || '',
-        items: quotingPO.items.map(item => ({ sku: item.sku, unitPrice: parseFloat(quote1Price) / quotingPO.items.reduce((sum, i) => sum + i.qty, 0), leadTime: '7 dias' })),
+        items: quotingPO.items.map(item => ({ sku: item.sku, unitPrice: parseFloat(quote1Price) / quotingPO.items.reduce((sum, i) => sum + i.qty, 0), leadTime: quote1Valid || '7 dias' })),
         totalValue: parseFloat(quote1Price),
-        validUntil: quote1Valid || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
+        validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
         notes: quote1Notes,
         quotedBy: 'Comprador',
         quotedAt: new Date().toLocaleString('pt-BR'),
@@ -201,9 +201,9 @@ export const PurchaseOrders: React.FC<PurchaseOrdersProps> = ({
         id: `Q2-${Date.now() + 1}`,
         vendorId: quote2Vendor,
         vendorName: vendors.find(v => v.id === quote2Vendor)?.name || '',
-        items: quotingPO.items.map(item => ({ sku: item.sku, unitPrice: parseFloat(quote2Price) / quotingPO.items.reduce((sum, i) => sum + i.qty, 0), leadTime: '7 dias' })),
+        items: quotingPO.items.map(item => ({ sku: item.sku, unitPrice: parseFloat(quote2Price) / quotingPO.items.reduce((sum, i) => sum + i.qty, 0), leadTime: quote2Valid || '7 dias' })),
         totalValue: parseFloat(quote2Price),
-        validUntil: quote2Valid || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
+        validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
         notes: quote2Notes,
         quotedBy: 'Comprador',
         quotedAt: new Date().toLocaleString('pt-BR'),
@@ -216,9 +216,9 @@ export const PurchaseOrders: React.FC<PurchaseOrdersProps> = ({
         id: `Q3-${Date.now() + 2}`,
         vendorId: quote3Vendor,
         vendorName: vendors.find(v => v.id === quote3Vendor)?.name || '',
-        items: quotingPO.items.map(item => ({ sku: item.sku, unitPrice: parseFloat(quote3Price) / quotingPO.items.reduce((sum, i) => sum + i.qty, 0), leadTime: '7 dias' })),
+        items: quotingPO.items.map(item => ({ sku: item.sku, unitPrice: parseFloat(quote3Price) / quotingPO.items.reduce((sum, i) => sum + i.qty, 0), leadTime: quote3Valid || '7 dias' })),
         totalValue: parseFloat(quote3Price),
-        validUntil: quote3Valid || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
+        validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
         notes: quote3Notes,
         quotedBy: 'Comprador',
         quotedAt: new Date().toLocaleString('pt-BR'),
@@ -775,11 +775,12 @@ export const PurchaseOrders: React.FC<PurchaseOrdersProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Validade</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">TEMPO DE ENTREGA</label>
                   <input
-                    type="date"
+                    type="text"
                     value={quote1Valid}
                     onChange={e => setQuote1Valid(e.target.value)}
+                    placeholder="Ex: 7 dias"
                     disabled={quotationMode === 'analyze'}
                     className={`w-full px-4 py-3 bg-white dark:bg-slate-800 border-2 rounded-xl font-bold text-sm transition-all ${quotationMode === 'analyze' ? 'border-slate-100 dark:border-slate-700 opacity-70 cursor-not-allowed' : 'border-amber-200 dark:border-amber-700 focus:border-amber-500'}`}
                   />
@@ -837,11 +838,12 @@ export const PurchaseOrders: React.FC<PurchaseOrdersProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Validade</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">TEMPO DE ENTREGA</label>
                   <input
-                    type="date"
+                    type="text"
                     value={quote2Valid}
                     onChange={e => setQuote2Valid(e.target.value)}
+                    placeholder="Ex: 5 dias"
                     disabled={quotationMode === 'analyze'}
                     className={`w-full px-4 py-3 bg-white dark:bg-slate-800 border-2 rounded-xl font-bold text-sm transition-all ${quotationMode === 'analyze' ? 'border-slate-100 dark:border-slate-700 opacity-70' : 'border-orange-200 dark:border-orange-700 focus:border-orange-500'}`}
                   />
@@ -899,11 +901,12 @@ export const PurchaseOrders: React.FC<PurchaseOrdersProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Validade</label>
+                  <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest">TEMPO DE ENTREGA</label>
                   <input
-                    type="date"
+                    type="text"
                     value={quote3Valid}
                     onChange={e => setQuote3Valid(e.target.value)}
+                    placeholder="Ex: 10 dias"
                     disabled={quotationMode === 'analyze'}
                     className={`w-full px-4 py-3 bg-white dark:bg-slate-800 border-2 rounded-xl font-bold text-sm transition-all ${quotationMode === 'analyze' ? 'border-slate-100 dark:border-slate-700 opacity-70' : 'border-red-200 dark:border-red-700 focus:border-red-500'}`}
                   />
