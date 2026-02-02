@@ -52,7 +52,7 @@ export const MasterData: React.FC<MasterDataProps> = ({ inventory, vendors, vehi
     let fileName = '';
 
     if (activeTab === 'itens') {
-      headers = ['sku', 'name', 'quantity', 'status', 'image_url', 'category', 'unit', 'min_qty', 'max_qty'];
+      headers = ['SKU', 'Nome', 'Unidade de Medida', 'Categoria', 'Quantidade', 'MinQty', 'MaxQty', 'URL'];
       fileName = 'template_itens_supabase.xlsx';
     } else if (activeTab === 'fornecedores') {
       headers = ['NOME', 'CNPJ', 'CONTATO', 'STATUS'];
