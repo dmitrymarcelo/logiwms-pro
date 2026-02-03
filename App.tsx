@@ -7,11 +7,12 @@ import { Receiving } from './pages/Receiving';
 import { Movements } from './pages/Movements';
 import { Inventory } from './pages/Inventory';
 import { Expedition } from './pages/Expedition';
+import { CyclicInventory } from './pages/CyclicInventory';
 import { PurchaseOrders } from './pages/PurchaseOrders';
 import { MasterData } from './pages/MasterData';
 import { Reports } from './pages/Reports';
 import { Settings } from './pages/Settings';
-import { Module, InventoryItem, Activity, Movement, Vendor, Vehicle, PurchaseOrder, Quote, ApprovalRecord, User, AppNotification } from './types';
+import { Module, InventoryItem, Activity, Movement, Vendor, Vehicle, PurchaseOrder, Quote, ApprovalRecord, User, AppNotification, CyclicBatch, CyclicCount } from './types';
 import { LoginPage } from './components/LoginPage';
 import { supabase } from './supabase';
 
@@ -29,6 +30,7 @@ const App: React.FC = () => {
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [appNotifications, setAppNotifications] = useState<AppNotification[]>([]);
+  const [cyclicBatches, setCyclicBatches] = useState<CyclicBatch[]>([]);
   const [notification, setNotification] = useState<{ message: string, type: 'success' | 'error' | 'warning' } | null>(null);
 
   // Supabase Data Fetching
@@ -46,11 +48,24 @@ const App: React.FC = () => {
           status: item.status,
           imageUrl: item.image_url,
           category: item.category,
+          abcCategory: item.abc_category,
+          lastCountedAt: item.last_counted_at,
           unit: item.unit || 'UN',
           minQty: item.min_qty,
           maxQty: item.max_qty,
           leadTime: item.lead_time || 7,
           safetyStock: item.safety_stock || 5
+        })));
+
+        const { data: batchesData } = await supabase.from('cyclic_batches').select('*').order('created_at', { ascending: false });
+        if (batchesData) setCyclicBatches(batchesData.map(b => ({
+          id: b.id,
+          status: b.status,
+          scheduledDate: b.scheduled_date,
+          completedAt: b.completed_at,
+          accuracyRate: b.accuracy_rate,
+          totalItems: b.total_items,
+          divergentItems: b.divergent_items
         })));
 
         const { data: venData } = await supabase.from('vendors').select('*');
@@ -588,6 +603,154 @@ const App: React.FC = () => {
     }
   };
 
+  const handleCreateCyclicBatch = async (items: { sku: string, expected: number }[]) => {
+    const batchId = `INV-${Date.now()}`;
+    const { error: batchError } = await supabase.from('cyclic_batches').insert([{
+      id: batchId,
+      status: 'aberto',
+      total_items: items.length
+    }]);
+
+    if (!batchError) {
+      const counts = items.map(item => ({
+        batch_id: batchId,
+        sku: item.sku,
+        expected_qty: item.expected,
+        status: 'pendente'
+      }));
+
+      const { error: countsError } = await supabase.from('cyclic_counts').insert(counts);
+      if (!countsError) {
+        const { data: newBatch } = await supabase.from('cyclic_batches').select('*').eq('id', batchId).single();
+        if (newBatch) {
+          setCyclicBatches(prev => [{
+            id: newBatch.id,
+            status: newBatch.status,
+            scheduledDate: newBatch.scheduled_date,
+            totalItems: newBatch.total_items,
+            divergentItems: newBatch.divergent_items
+          }, ...prev]);
+        }
+        showNotification(`Lote ${batchId} criado com ${items.length} itens!`, 'success');
+        return batchId;
+      }
+    }
+    showNotification('Erro ao criar lote de inventário', 'error');
+    return null;
+  };
+
+  const handleFinalizeCyclicBatch = async (batchId: string, counts: any[]) => {
+    const divergentItems = counts.filter(c => c.countedQty !== c.expectedQty).length;
+    const accuracyRate = ((counts.length - divergentItems) / counts.length) * 100;
+
+    const { error: batchError } = await supabase.from('cyclic_batches').update({
+      status: 'concluido',
+      completed_at: new Date().toISOString(),
+      accuracy_rate: accuracyRate,
+      divergent_items: divergentItems
+    }).eq('id', batchId);
+
+    if (!batchError) {
+      // Registrar movimentos de ajuste para divergências
+      for (const count of counts) {
+        if (count.countedQty !== count.expectedQty) {
+          const item = inventory.find(i => i.sku === count.sku);
+          if (item) {
+            const diff = count.countedQty - count.expectedQty;
+            await recordMovement('ajuste', item, Math.abs(diff), `Ajuste automático via Inventário Cíclico (${batchId})`);
+
+            // Atualizar estoque
+            await supabase.from('inventory').update({
+              quantity: count.countedQty,
+              last_counted_at: new Date().toISOString()
+            }).eq('sku', item.sku);
+          }
+        } else {
+          // Apenas atualizar data de última contagem
+          await supabase.from('inventory').update({
+            last_counted_at: new Date().toISOString()
+          }).eq('sku', count.sku);
+        }
+      }
+
+      setCyclicBatches(prev => prev.map(b => b.id === batchId ? {
+        ...b,
+        status: 'concluido',
+        completedAt: new Date().toISOString(),
+        accuracyRate,
+        divergentItems
+      } : b));
+
+      // Atualizar estado local do inventário
+      const updatedInv = inventory.map(item => {
+        const count = counts.find(c => c.sku === item.sku);
+        if (count) {
+          return { ...item, quantity: count.countedQty, lastCountedAt: new Date().toISOString() };
+        }
+        return item;
+      });
+      setInventory(updatedInv);
+
+      addActivity('alerta', 'Inventário Finalizado', `Lote ${batchId} concluído com ${accuracyRate.toFixed(1)}% de acuracidade.`);
+      showNotification(`Inventário ${batchId} finalizado!`, 'success');
+    }
+  };
+
+  const handleClassifyABC = async () => {
+    // Analisar movimentos dos últimos 30 dias
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    // Obter frequência de saída por SKU
+    const skuFrequency: Record<string, number> = {};
+    movements
+      .filter(m => m.type === 'saida') // && new Date(m.timestamp) > thirtyDaysAgo)
+      .forEach(m => {
+        skuFrequency[m.sku] = (skuFrequency[m.sku] || 0) + m.quantity;
+      });
+
+    // Ordenar SKUs por frequência
+    const sortedSkus = inventory.map(item => ({
+      sku: item.sku,
+      freq: skuFrequency[item.sku] || 0
+    })).sort((a, b) => b.freq - a.freq);
+
+    const total = sortedSkus.length;
+    const aLimit = Math.ceil(total * 0.2);
+    const bLimit = Math.ceil(total * 0.5);
+
+    for (let i = 0; i < total; i++) {
+      let category: 'A' | 'B' | 'C' = 'C';
+      if (i < aLimit) category = 'A';
+      else if (i < bLimit) category = 'B';
+
+      await supabase.from('inventory').update({ abc_category: category }).eq('sku', sortedSkus[i].sku);
+    }
+
+    // Recarregar inventário
+    const { data: invData } = await supabase.from('inventory').select('*');
+    if (invData) setInventory(invData.map(item => ({
+      sku: item.sku,
+      name: item.name,
+      location: item.location,
+      batch: item.batch,
+      expiry: item.expiry,
+      quantity: item.quantity,
+      status: item.status,
+      imageUrl: item.image_url,
+      category: item.category,
+      abcCategory: item.abc_category,
+      lastCountedAt: item.last_counted_at,
+      unit: item.unit || 'UN',
+      minQty: item.min_qty,
+      maxQty: item.max_qty,
+      leadTime: item.lead_time || 7,
+      safetyStock: item.safety_stock || 5
+    })));
+
+    showNotification('Classificação ABC atualizada com base no giro mensal!', 'success');
+  };
+
   const handleFinalizeReceipt = async (receivedItems: any[], poId?: string) => {
     const newInventory = [...inventory];
     for (const received of receivedItems) {
@@ -919,6 +1082,17 @@ const App: React.FC = () => {
             />
           )}
           {activeModule === 'expedicao' && <Expedition inventory={inventory} onProcessPicking={handleProcessPicking} />}
+          {
+            activeModule === 'inventario_ciclico' && (
+              <CyclicInventory
+                inventory={inventory}
+                batches={cyclicBatches}
+                onCreateBatch={handleCreateCyclicBatch}
+                onFinalizeBatch={handleFinalizeCyclicBatch}
+                onClassifyABC={handleClassifyABC}
+              />
+            )
+          }
           {activeModule === 'compras' && (
             <PurchaseOrders
               user={user}

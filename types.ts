@@ -1,5 +1,5 @@
 
-export type Module = 'dashboard' | 'recebimento' | 'movimentacoes' | 'estoque' | 'expedicao' | 'compras' | 'gestao_compras' | 'cadastro' | 'relatorios' | 'configuracoes';
+export type Module = 'dashboard' | 'recebimento' | 'movimentacoes' | 'estoque' | 'expedicao' | 'inventario_ciclico' | 'compras' | 'gestao_compras' | 'cadastro' | 'relatorios' | 'configuracoes';
 
 export const ALL_MODULES: { id: Module; label: string }[] = [
   { id: 'dashboard', label: 'Dashboard' },
@@ -8,6 +8,7 @@ export const ALL_MODULES: { id: Module; label: string }[] = [
   { id: 'estoque', label: 'Estoque' },
   { id: 'expedicao', label: 'Expedição' },
   { id: 'compras', label: 'Compras' },
+  { id: 'inventario_ciclico', label: 'Inventário Cíclico' },
   { id: 'cadastro', label: 'Cadastro' },
   { id: 'relatorios', label: 'Relatórios' },
   { id: 'configuracoes', label: 'Configurações' },
@@ -86,6 +87,8 @@ export interface InventoryItem {
   maxQty: number;
   leadTime: number;
   safetyStock: number;
+  abcCategory?: 'A' | 'B' | 'C';
+  lastCountedAt?: string;
 }
 
 export interface Quote {
@@ -163,4 +166,25 @@ export interface AppNotification {
   read: boolean;
   createdAt: string;
   userId?: string;
+}
+
+export interface CyclicBatch {
+  id: string;
+  status: 'aberto' | 'concluido' | 'cancelado';
+  scheduledDate: string;
+  completedAt?: string;
+  accuracyRate?: number;
+  totalItems: number;
+  divergentItems: number;
+}
+
+export interface CyclicCount {
+  id: string;
+  batchId: string;
+  sku: string;
+  expectedQty: number;
+  countedQty?: number;
+  status: 'pendente' | 'contado' | 'ajustado';
+  notes?: string;
+  countedAt?: string;
 }
