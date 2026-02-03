@@ -6,7 +6,7 @@ export const ALL_MODULES: { id: Module; label: string }[] = [
   { id: 'recebimento', label: 'Recebimento' },
   { id: 'movimentacoes', label: 'Movimentações' },
   { id: 'estoque', label: 'Estoque' },
-  { id: 'expedicao', label: 'Expedição' },
+  { id: 'expedicao', label: 'Solicitações SA' },
   { id: 'compras', label: 'Compras' },
   { id: 'inventario_ciclico', label: 'Inventário Cíclico' },
   { id: 'cadastro', label: 'Cadastro' },

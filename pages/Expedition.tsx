@@ -142,7 +142,7 @@ export const Expedition: React.FC<ExpeditionProps> = ({ inventory, onProcessPick
             </svg>
             <span className="text-[10px] font-black text-primary uppercase tracking-widest">Fluxo de Saída de Cargas</span>
           </div>
-          <h2 className="text-4xl font-black tracking-tighter text-slate-800 dark:text-white">Expedição e Separação</h2>
+          <h2 className="text-4xl font-black tracking-tighter text-slate-800 dark:text-white">Solicitações SA</h2>
           <p className="text-slate-500 text-sm font-medium">Gestão de picking e solicitações internas com workflow de aprovação.</p>
         </div>
         <div className="flex gap-3">

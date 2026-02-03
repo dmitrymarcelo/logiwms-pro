@@ -1019,7 +1019,7 @@ const App: React.FC = () => {
       case 'recebimento': return 'Recebimento de Cargas';
       case 'movimentacoes': return 'Auditoria de Movimentações';
       case 'estoque': return 'Gestão de Inventário';
-      case 'expedicao': return 'Expedição e Picking';
+      case 'expedicao': return 'Solicitações SA';
       case 'cadastro': return 'Cadastro de Mestres';
       case 'compras': return 'Pedidos de Compra';
       default: return 'Norte Tech WMS';
