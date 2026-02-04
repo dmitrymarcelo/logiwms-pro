@@ -20,17 +20,17 @@ import { supabase } from './supabase';
 const App: React.FC = () => {
   const [activeModule, setActiveModule] = useState<Module>('dashboard');
   const [isDarkMode, setIsDarkMode] = useState(false);
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [inventory, setInventory] = useState<InventoryItem[]>([]);
   const [vendors, setVendors] = useState<Vendor[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
-  const [activities, setActivities] = useState<Activity[]>([
-    { id: '1', type: 'alerta', title: 'Sistema Norte Tech Conectado', subtitle: 'Banco de dados Supabase ativo', time: 'Agora' }
-  ]);
+  const [activities, setActivities] = useState<Activity[]>([]);
   const [movements, setMovements] = useState<Movement[]>([]);
   const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [appNotifications, setAppNotifications] = useState<AppNotification[]>([]);
   const [cyclicBatches, setCyclicBatches] = useState<CyclicBatch[]>([]);
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [notification, setNotification] = useState<{ message: string, type: 'success' | 'error' | 'warning' } | null>(null);
 
   // Supabase Data Fetching
@@ -93,6 +93,10 @@ const App: React.FC = () => {
           quotes: po.quotes,
           selectedQuoteId: po.selected_quote_id,
           sentToVendorAt: po.sent_to_vendor_at,
+          receivedAt: po.received_at,
+          quotesAddedAt: po.quotes_added_at,
+          approvedAt: po.approved_at,
+          rejectedAt: po.rejected_at,
           vendorOrderNumber: po.vendor_order_number,
           approvalHistory: po.approval_history
         })));
@@ -351,11 +355,12 @@ const App: React.FC = () => {
 
     const { error } = await supabase.from('purchase_orders').update({
       status: 'aprovado',
-      approval_history: newApprovalHistory
+      approval_history: newApprovalHistory,
+      approved_at: approvalRecord.at
     }).eq('id', id);
 
     if (!error) {
-      setPurchaseOrders(prev => prev.map(o => o.id === id ? { ...o, status: 'aprovado', approvalHistory: newApprovalHistory } : o));
+      setPurchaseOrders(prev => prev.map(o => o.id === id ? { ...o, status: 'aprovado', approvalHistory: newApprovalHistory, approvedAt: approvalRecord.at } : o));
       addActivity('compra', 'Aprovação de Pedido', `Requisição ${id} aprovada - pronta para envio`);
       addNotification(
         `Aprovação: ${id}`,
@@ -381,12 +386,17 @@ const App: React.FC = () => {
     const newApprovalHistory = [...(po.approvalHistory || []), rejectionRecord];
 
     const { error } = await supabase.from('purchase_orders').update({
-      status: 'requisicao',
-      approval_history: newApprovalHistory
+      status: 'requisicao', // Volta para o início do fluxo
+      approval_history: newApprovalHistory,
+      rejected_at: rejectionRecord.at
     }).eq('id', id);
 
     if (!error) {
-      setPurchaseOrders(prev => prev.map(o => o.id === id ? { ...o, status: 'requisicao', approvalHistory: newApprovalHistory } : o));
+      setPurchaseOrders(prev => prev.map(o => o.id === id ? { ...o, status: 'requisicao', approvalHistory: newApprovalHistory, rejectedAt: rejectionRecord.at } : o));
+
+      // Criar log de movimentação para métricas (auditoria de fluxo)
+      await recordMovement('ajuste', { sku: 'N/A', name: `PEDIDO ${id}`, location: 'ADMIN' } as any, 0, `Rejeição: ${reason || 'Sem justificativa'}`, id);
+
       addActivity('alerta', 'Pedido Rejeitado', `Requisição ${id} retornou para cotação`);
       addNotification(
         `Rejeição: ${id}`,
@@ -496,12 +506,12 @@ const App: React.FC = () => {
     const { error } = await supabase.from('purchase_orders').insert([{
       id: orderWithStatus.id,
       vendor: orderWithStatus.vendor,
-      request_date: orderWithStatus.requestDate,
       status: orderWithStatus.status,
       priority: orderWithStatus.priority,
       total: orderWithStatus.total,
       requester: orderWithStatus.requester,
-      items: orderWithStatus.items
+      items: orderWithStatus.items,
+      request_date: new Date().toLocaleString('pt-BR')
     }]);
 
     if (!error) {
@@ -515,14 +525,16 @@ const App: React.FC = () => {
   };
 
   const handleAddQuotes = async (poId: string, quotes: Quote[]) => {
+    const quotesAddedAt = new Date().toLocaleString('pt-BR');
     const { error } = await supabase.from('purchase_orders').update({
       quotes,
-      status: 'cotacao'
+      status: 'cotacao',
+      quotes_added_at: quotesAddedAt
     }).eq('id', poId);
 
     if (!error) {
       setPurchaseOrders(prev => prev.map(o =>
-        o.id === poId ? { ...o, quotes, status: 'cotacao' as const } : o
+        o.id === poId ? { ...o, quotes, status: 'cotacao' as const, quotesAddedAt } : o
       ));
       showNotification(`Cotações adicionadas ao pedido ${poId}`, 'success');
     }
@@ -811,9 +823,10 @@ const App: React.FC = () => {
     await handleSyncAutoPOs(receivedItems.map(r => ({ sku: r.sku, qty: r.received })));
 
     if (poId) {
+      const receivedAt = new Date().toLocaleString('pt-BR');
       const { error } = await supabase.from('purchase_orders').update({ status: 'recebido' }).eq('id', poId);
       if (!error) {
-        setPurchaseOrders(prev => prev.map(po => po.id === poId ? { ...po, status: 'recebido' } : po));
+        setPurchaseOrders(prev => prev.map(po => po.id === poId ? { ...po, status: 'recebido', receivedAt } : po));
         addActivity('recebimento', 'Recebimento Finalizado', `Carga ${poId} conferida e armazenada`);
         addNotification(
           `Recebimento: ${poId}`,
@@ -1036,12 +1049,12 @@ const App: React.FC = () => {
     const { error } = await supabase.from('purchase_orders').insert([{
       id: autoPO.id,
       vendor: autoPO.vendor,
-      request_date: autoPO.requestDate,
       status: autoPO.status,
       priority: autoPO.priority,
       total: autoPO.total,
       requester: autoPO.requester,
-      items: autoPO.items
+      items: autoPO.items,
+      request_date: new Date().toLocaleString('pt-BR')
     }]);
 
     if (!error) {
@@ -1085,7 +1098,18 @@ const App: React.FC = () => {
 
   return (
     <div className={`flex w-screen h-screen overflow-hidden ${isDarkMode ? 'dark' : ''}`}>
-      <Sidebar activeModule={activeModule} onModuleChange={setActiveModule} user={user} />
+      <Sidebar
+        activeModule={activeModule}
+        onModuleChange={(module) => {
+          setActiveModule(module);
+          setIsMobileMenuOpen(false);
+        }}
+        user={user}
+        isCollapsed={isSidebarCollapsed}
+        onToggle={() => setIsSidebarCollapsed(!isSidebarCollapsed)}
+        isMobileOpen={isMobileMenuOpen}
+        onMobileClose={() => setIsMobileMenuOpen(false)}
+      />
       <div className="flex-1 flex flex-col min-w-0 h-full">
         <TopBar
           isDarkMode={isDarkMode}
@@ -1096,8 +1120,9 @@ const App: React.FC = () => {
           notifications={appNotifications}
           onMarkAsRead={markNotificationAsRead}
           onMarkAllAsRead={markAllNotificationsAsRead}
+          onMobileMenuToggle={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         />
-        <main className="flex-1 overflow-y-auto bg-background-light dark:bg-background-dark p-6 lg:p-10 relative">
+        <main className="flex-1 overflow-y-auto bg-background-light dark:bg-background-dark p-4 lg:p-10 relative">
           {notification && (
             <div className={`fixed top-20 right-8 z-50 animate-in slide-in-from-right px-6 py-3 rounded-xl shadow-2xl flex items-center gap-3 border ${notification.type === 'success' ? 'bg-emerald-500 text-white border-emerald-400' :
               notification.type === 'error' ? 'bg-red-500 text-white border-red-400' : 'bg-amber-500 text-white border-amber-400'
@@ -1159,7 +1184,7 @@ const App: React.FC = () => {
               onImportRecords={handleImportMasterRecords}
             />
           )}
-          {activeModule === 'relatorios' && <Reports />}
+          {activeModule === 'relatorios' && <Reports orders={purchaseOrders} />}
           {activeModule === 'configuracoes' && (
             <Settings
               users={users}

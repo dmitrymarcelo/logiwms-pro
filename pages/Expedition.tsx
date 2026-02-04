@@ -36,16 +36,7 @@ interface ExpeditionProps {
   onProcessPicking: (sku: string, qty: number) => boolean;
 }
 
-const INITIAL_ORDERS: Order[] = [
-  {
-    id: 'PED-1001',
-    customer: 'Loja Tech Brasil',
-    items: [{ sku: 'SKU-29384-EL', name: 'Fone de Ouvido Noise Cancelling', qty: 50 }],
-    status: 'pendente',
-    carrier: 'LogExpress Transportes',
-    priority: 'alta'
-  }
-];
+const INITIAL_ORDERS: Order[] = [];
 
 export const Expedition: React.FC<ExpeditionProps> = ({ inventory, onProcessPicking }) => {
   const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);

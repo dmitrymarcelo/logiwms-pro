@@ -123,7 +123,11 @@ export interface PurchaseOrder {
   requester?: string;
   quotes?: Quote[];
   selectedQuoteId?: string;
+  quotesAddedAt?: string;
+  approvedAt?: string;
+  rejectedAt?: string;
   sentToVendorAt?: string;
+  receivedAt?: string;
   vendorOrderNumber?: string;
   approvalHistory?: ApprovalRecord[];
 }

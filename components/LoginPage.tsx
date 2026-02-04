@@ -50,7 +50,7 @@ export const LoginPage: React.FC<LoginPageProps> = ({ users, onLogin }) => {
     };
 
     return (
-        <div className="min-h-screen flex flex-col md:flex-row bg-slate-100 dark:bg-slate-900">
+        <div className="min-h-screen flex flex-col md:flex-row bg-slate-100 dark:bg-slate-900 relative">
             {/* Esquerda: Imagem Hero */}
             <div className="hidden md:flex md:w-[65%] relative overflow-hidden bg-slate-800">
                 <img
@@ -68,9 +68,10 @@ export const LoginPage: React.FC<LoginPageProps> = ({ users, onLogin }) => {
             {/* Direita: Formulário de Login */}
             <div className="flex-1 flex items-center justify-center p-8">
                 <div className="bg-white dark:bg-slate-800 p-8 rounded-3xl shadow-2xl w-full max-w-md border border-slate-200 dark:border-slate-700 animate-in fade-in slide-in-from-right duration-500">
-                    <div className="flex flex-col items-center mb-8">
-                        <img src={`${import.meta.env.BASE_URL}norte_tech_logo.png`} alt="Norte Tech Logo" className="h-32 object-contain mb-4" />
-                        <p className="text-slate-500 font-black uppercase text-[10px] tracking-[0.2em] mt-1 bg-slate-100 px-3 py-1 rounded-full">Acesso Restrito ao Sistema</p>
+
+                    <div className="flex flex-col items-center mb-10">
+                        <img src={`${import.meta.env.BASE_URL}norte_tech_logo.png`} alt="Norte Tech Logo" className="h-40 w-auto drop-shadow-2xl transition-all duration-700 hover:scale-110 mb-6" />
+                        <p className="text-slate-500 font-black uppercase text-[10px] tracking-[0.2em] mt-1 bg-slate-100 px-5 py-2 rounded-full border border-slate-200/50">Acesso Restrito ao Sistema</p>
                     </div>
 
                     <form onSubmit={handleLogin} className="space-y-6">

@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { PurchaseOrder, Vendor, InventoryItem, Quote, User, PO_STATUS_LABELS } from '../types';
+import { PurchaseOrder, Vendor, InventoryItem, Quote, User, PO_STATUS_LABELS, CyclicBatch, CyclicCount } from '../types';
 
 interface PurchaseOrdersProps {
   user: User;
@@ -14,6 +14,249 @@ interface PurchaseOrdersProps {
   onApprove: (id: string) => void;
   onReject: (id: string, reason?: string) => void;
 }
+const getStatusColor = (status: PurchaseOrder['status']) => {
+  switch (status) {
+    case 'requisicao': return 'bg-amber-100 text-amber-700 border-amber-200';
+    case 'cotacao': return 'bg-blue-100 text-blue-700 border-blue-200';
+    case 'pendente': return 'bg-purple-100 text-purple-700 border-purple-200';
+    case 'aprovado': return 'bg-emerald-100 text-emerald-700 border-emerald-200';
+    case 'enviado': return 'bg-indigo-100 text-indigo-700 border-indigo-200';
+    case 'recebido': return 'bg-slate-100 text-slate-700 border-slate-200';
+    case 'cancelado': return 'bg-red-100 text-red-700 border-red-200';
+    default: return 'bg-slate-100 text-slate-500 border-slate-200';
+  }
+};
+
+const StatusProgressBar: React.FC<{ order: PurchaseOrder }> = ({ order }) => {
+  const { status } = order;
+
+  // Colored Illustrative SVGs
+  const IconOrder = ({ active }: { active: boolean }) => (
+    <div className={`p-2 rounded-2xl transition-all duration-500 ${active ? 'bg-amber-100 dark:bg-amber-900/30' : 'bg-slate-50 dark:bg-slate-800/50'}`}>
+      <svg xmlns="http://www.w3.org/2000/svg" className={`size-6 ${active ? 'text-amber-500' : 'text-slate-300'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4Z" />
+        <path d="M3 6h18" />
+        <path d="M16 10a4 4 0 0 1-8 0" />
+      </svg>
+    </div>
+  );
+  const IconPayment = ({ active }: { active: boolean }) => (
+    <div className={`p-2 rounded-2xl transition-all duration-500 ${active ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-slate-50 dark:bg-slate-800/50'}`}>
+      <svg xmlns="http://www.w3.org/2000/svg" className={`size-6 ${active ? 'text-emerald-500' : 'text-slate-300'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8" />
+        <path d="M12 18V6" />
+      </svg>
+    </div>
+  );
+  const IconApprove = ({ active }: { active: boolean }) => (
+    <div className={`p-2 rounded-2xl transition-all duration-500 ${active ? 'bg-indigo-100 dark:bg-indigo-900/30' : 'bg-slate-50 dark:bg-slate-800/50'}`}>
+      <svg xmlns="http://www.w3.org/2000/svg" className={`size-6 ${active ? 'text-indigo-500' : 'text-slate-300'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M11 2a2 2 0 0 0-2 2v5H4a2 2 0 0 0-2 2v2c0 1.1.9 2 2 2h5v5c0 1.1.9 2 2 2h2c1.1 0 2-.9 2-2v-5h5a2 2 0 0 0 2-2v-2a2 2 0 0 0-2-2h-5V4a2 2 0 0 0-2-2h-2z" />
+      </svg>
+    </div>
+  );
+  const IconTransport = ({ active }: { active: boolean }) => (
+    <div className={`p-2 rounded-2xl transition-all duration-500 ${active ? 'bg-blue-100 dark:bg-blue-900/30' : 'bg-slate-50 dark:bg-slate-800/50'}`}>
+      <svg xmlns="http://www.w3.org/2000/svg" className={`size-6 ${active ? 'text-blue-500' : 'text-slate-300'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M10 17h4V5H2v12h3" />
+        <path d="M20 17h2v-3.34a4 4 0 0 0-1.17-2.83L19 9h-5" />
+        <circle cx="7.5" cy="17.5" r="2.5" />
+        <circle cx="17.5" cy="17.5" r="2.5" />
+      </svg>
+    </div>
+  );
+  const IconDelivered = ({ active }: { active: boolean }) => (
+    <div className={`p-2 rounded-2xl transition-all duration-500 ${active ? 'bg-slate-100 dark:bg-slate-800/80' : 'bg-slate-50 dark:bg-slate-800/50'}`}>
+      <svg xmlns="http://www.w3.org/2000/svg" className={`size-6 ${active ? 'text-slate-700 dark:text-slate-300' : 'text-slate-300'}`} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z" />
+        <path d="m3.3 7 8.7 5 8.7-5" />
+        <path d="M12 22V12" />
+      </svg>
+    </div>
+  );
+
+  const steps = [
+    { label: 'Pedido Realizado', icon: (a: boolean) => <IconOrder active={a} />, date: order.requestDate, status: 'requisicao' },
+    { label: 'Cotação Realizada', icon: (a: boolean) => <IconPayment active={a} />, date: order.quotesAddedAt, status: 'cotacao' },
+    { label: 'Aprovação Concluída', icon: (a: boolean) => <IconApprove active={a} />, date: order.approvedAt, status: 'aprovado' },
+    { label: 'Pedido Enviado', icon: (a: boolean) => <IconTransport active={a} />, date: order.sentToVendorAt, status: 'enviado' },
+    { label: 'Pedido Entregue', icon: (a: boolean) => <IconDelivered active={a} />, date: order.receivedAt, status: 'recebido' }
+  ];
+
+  // Injetar Rejeição se houver
+  if (order.rejectedAt) {
+    steps.splice(3, 0, { label: 'Pedido Rejeitado', icon: (a: boolean) => <IconApprove active={a} />, date: order.rejectedAt, status: 'cancelado' as any });
+  }
+
+  const currentStepIndex = steps.findIndex(s => s.status === status) === -1
+    ? (status === 'cancelado' ? -1 : steps.length - 1)
+    : steps.findIndex(s => s.status === status);
+
+  const formatDateTime = (dateStr?: string) => {
+    if (!dateStr) return { date: '--/--/----', time: '--:--' };
+    const parts = dateStr.split(', ');
+    return {
+      date: parts[0] || dateStr,
+      time: parts[1] || '00:00'
+    };
+  };
+
+  return (
+    <div className="bg-white dark:bg-[#1a222c] p-8 rounded-[3rem] border border-slate-100 dark:border-slate-800 space-y-12">
+      <h3 className="text-lg font-black text-[#0f172a] dark:text-white tracking-tight">Histórico de Status</h3>
+
+      {/* Timeline Graphic */}
+      <div className="relative pt-8 px-4">
+        {/* Progress Line Segments */}
+        <div className="absolute top-[4.75rem] left-8 right-8 h-1 flex">
+          {Array.from({ length: steps.length - 1 }).map((_, i) => (
+            <div
+              key={i}
+              className={`flex-1 h-full transition-all duration-1000 ease-in-out ${i < currentStepIndex ? 'bg-blue-500 shadow-[0_0_8px_rgba(59,130,246,0.5)]' : 'bg-slate-100 dark:bg-slate-800'}`}
+            />
+          ))}
+        </div>
+
+        <div className="flex justify-between relative z-10 items-end">
+          {steps.map((step, idx) => {
+            const isCompleted = idx < currentStepIndex;
+            const isActive = idx === currentStepIndex;
+            const isFuture = idx > currentStepIndex;
+            const { date } = formatDateTime(step.date);
+
+            return (
+              <div key={idx} className={`flex flex-col items-center text-center space-y-4 max-w-[120px] group transition-all duration-300 ${isActive ? 'scale-110' : 'hover:scale-105'}`}>
+                {/* Descriptive Colored Icon */}
+                <div className={`mb-2 transform transition-all duration-500 ${isActive ? 'translate-y-[-8px]' : ''}`}>
+                  {step.icon(isCompleted || isActive)}
+                </div>
+
+                {/* Node with Interaction */}
+                <div className={`relative flex items-center justify-center transition-all duration-500`}>
+                  {/* Step Node */}
+                  <div className={`size-8 rounded-full border-4 border-white dark:border-[#1a222c] shadow-lg flex items-center justify-center transition-all duration-500 z-20 ${isCompleted ? 'bg-blue-500' :
+                    isActive ? 'bg-white dark:bg-slate-900 border-blue-500 ring-4 ring-blue-500/20' :
+                      'bg-slate-200 dark:bg-slate-700'
+                    }`}>
+                    {isCompleted ? (
+                      <svg xmlns="http://www.w3.org/2000/svg" className="size-4 text-white" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M20 6 9 17 4 12" />
+                      </svg>
+                    ) : isActive ? (
+                      <div className="size-2.5 bg-blue-500 rounded-full animate-pulse shadow-[0_0_12px_rgba(59,130,246,0.8)]" />
+                    ) : null}
+                  </div>
+
+                  {/* Ripple Effect for Active Step */}
+                  {isActive && (
+                    <div className="absolute inset-0 size-8 bg-blue-500 rounded-full animate-ping opacity-20 z-10" />
+                  )}
+                </div>
+
+                <div className="space-y-1">
+                  <p className={`text-[10px] font-black uppercase tracking-tight transition-colors duration-300 ${isActive ? 'text-blue-600 dark:text-blue-400' :
+                    isCompleted ? 'text-[#0f172a] dark:text-white' :
+                      'text-slate-400'
+                    }`}>
+                    {step.label}
+                  </p>
+                  <p className={`text-[9px] font-bold transition-colors duration-300 ${isActive ? 'text-blue-500/80' : 'text-slate-500'}`}>
+                    {step.date ? date : (isActive ? 'Em Andamento' : 'Pendente')}
+                  </p>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Package Info Section */}
+      <div className="flex flex-col md:flex-row md:items-end justify-between border-t border-slate-100 dark:border-slate-800 pt-8 gap-6">
+        <div className="space-y-4">
+          <div className="space-y-1">
+            <h4 className="text-sm font-black text-[#0f172a] dark:text-white uppercase tracking-wider">Pedido</h4>
+            <p className="text-xs font-bold text-slate-600 dark:text-slate-400">
+              Entrega até <span className="text-[#0f172a] dark:text-primary">
+                {order.selectedQuoteId && order.quotes?.find(q => q.id === order.selectedQuoteId)?.validUntil
+                  ? formatDateTime(order.quotes?.find(q => q.id === order.selectedQuoteId)?.validUntil).date
+                  : formatDateTime(order.receivedAt || order.sentToVendorAt).date}
+              </span>
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] font-bold text-slate-500">Método de envio:</span>
+            <span className="px-3 py-1 bg-slate-100 dark:bg-slate-800 text-[#0f172a] dark:text-white text-[10px] font-black rounded-lg border border-slate-200 dark:border-slate-700">1.Convencional</span>
+          </div>
+        </div>
+
+        <button className="flex items-center gap-2 group text-[#0f172a] dark:text-primary transition-all hover:translate-x-1">
+          <svg xmlns="http://www.w3.org/2000/svg" className="size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z" />
+            <polyline points="14 2 14 8 20 8" />
+          </svg>
+          <span className="text-[10px] font-black uppercase tracking-widest underline underline-offset-4">Visualizar Nota Fiscal Eletrônica</span>
+        </button>
+      </div>
+
+      {/* Detailed Log Table */}
+      <div className="overflow-hidden rounded-2xl border border-slate-100 dark:border-slate-800">
+        <table className="w-full text-left border-collapse">
+          <thead>
+            <tr className="bg-slate-50/50 dark:bg-slate-800/50">
+              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 dark:border-slate-800">Data</th>
+              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 dark:border-slate-800">Hora</th>
+              <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border-b border-slate-100 dark:border-slate-800">Status</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+            {/* Log de Aprovação/Rejeição do Histórico */}
+            {(order.approvalHistory || []).slice().reverse().map((log, lidx) => {
+              const { date, time } = formatDateTime(log.at);
+              return (
+                <tr key={`log-${lidx}`} className={log.action === 'rejected' ? "bg-red-50/30 dark:bg-red-900/10" : "bg-emerald-50/30 dark:bg-emerald-900/10"}>
+                  <td className={`px-6 py-4 text-[11px] font-bold ${log.action === 'rejected' ? 'text-red-600' : 'text-emerald-600'}`}>{date}</td>
+                  <td className={`px-6 py-4 text-[11px] font-bold ${log.action === 'rejected' ? 'text-red-600' : 'text-emerald-600'}`}>{time}</td>
+                  <td className={`px-6 py-4 text-[11px] font-black uppercase ${log.action === 'rejected' ? 'text-red-600' : 'text-emerald-600'} tracking-widest`}>
+                    {log.action === 'rejected' ? `REJEITADO: ${log.reason}` : 'APROVADO POR GESTOR'}
+                  </td>
+                </tr>
+              );
+            })}
+
+            {steps.filter(s => s.date && s.label !== 'Pedido Rejeitado').reverse().map((step, idx) => {
+              const { date, time } = formatDateTime(step.date);
+              let statusDesc = "";
+              switch (step.status) {
+                case 'requisicao': statusDesc = "Pedido criado via painel LogiWMS"; break;
+                case 'cotacao': statusDesc = "Cotação de fornecedores vinculada"; break;
+                case 'aprovado': statusDesc = "Aprovação financeira e operacional concluída"; break;
+                case 'enviado': statusDesc = "Produto em trânsito para a unidade"; break;
+                case 'recebido': statusDesc = "Entrega realizada normalmente"; break;
+              }
+
+              return (
+                <tr key={idx} className="hover:bg-slate-50/30 dark:hover:bg-slate-800/30 transition-colors">
+                  <td className="px-6 py-4 text-[11px] font-bold text-slate-700 dark:text-slate-300 tracking-tight">{date}</td>
+                  <td className="px-6 py-4 text-[11px] font-bold text-slate-700 dark:text-slate-300 tracking-tight">{time}</td>
+                  <td className="px-6 py-4 text-[11px] font-medium text-slate-600 dark:text-slate-400">{statusDesc}</td>
+                </tr>
+              );
+            })}
+            {status === 'cancelado' && !order.rejectedAt && (
+              <tr className="bg-red-50/30 dark:bg-red-900/10">
+                <td className="px-6 py-4 text-[11px] font-bold text-red-600">--/--/----</td>
+                <td className="px-6 py-4 text-[11px] font-bold text-red-600">--:--</td>
+                <td className="px-6 py-4 text-[11px] font-black uppercase text-red-600 tracking-widest">Pedido Rejeitado/Cancelado</td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+
 
 export const PurchaseOrders: React.FC<PurchaseOrdersProps> = ({
   user,
@@ -36,6 +279,10 @@ export const PurchaseOrders: React.FC<PurchaseOrdersProps> = ({
   const [vendorOrderNum, setVendorOrderNum] = useState('');
   const [quotationMode, setQuotationMode] = useState<'edit' | 'analyze'>('edit');
 
+  // Form State
+  // Rejection Modal State
+  const [rejectionOrderId, setRejectionOrderId] = useState<string | null>(null);
+  const [rejectionReason, setRejectionReason] = useState('');
   // Form State
   const [selectedVendor, setSelectedVendor] = useState('');
   const [priority, setPriority] = useState<'normal' | 'urgente'>('normal');
@@ -195,9 +442,9 @@ export const PurchaseOrders: React.FC<PurchaseOrdersProps> = ({
     }
 
     // Validar fornecedores diferentes (apenas entre os preenchidos)
-    const vendors = [quote1Vendor, quote2Vendor, quote3Vendor].filter(Boolean);
-    const uniqueVendors = new Set(vendors);
-    if (vendors.length !== uniqueVendors.size) {
+    const filledVendorIds = [quote1Vendor, quote2Vendor, quote3Vendor].filter(Boolean);
+    const uniqueVendors = new Set(filledVendorIds);
+    if (filledVendorIds.length !== uniqueVendors.size) {
       alert('Os fornecedores devem ser diferentes!');
       return;
     }
@@ -209,7 +456,7 @@ export const PurchaseOrders: React.FC<PurchaseOrdersProps> = ({
         id: `Q1-${Date.now()}`,
         vendorId: quote1Vendor,
         vendorName: vendors.find(v => v.id === quote1Vendor)?.name || '',
-        items: quotingPO.items.map(item => ({ sku: item.sku, unitPrice: parseFloat(quote1Price) / quotingPO.items.reduce((sum, i) => sum + i.qty, 0), leadTime: quote1Valid || '7 dias' })),
+        items: quotingPO.items.map(item => ({ sku: item.sku, unitPrice: parseFloat(quote1Price) / quotingPO.items.reduce((sum, i) => sum + i.qty, 0), leadTime: quote1Valid ? '7 dias' : '' })),
         totalValue: parseFloat(quote1Price),
         validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
         notes: quote1Notes,
@@ -224,7 +471,7 @@ export const PurchaseOrders: React.FC<PurchaseOrdersProps> = ({
         id: `Q2-${Date.now() + 1}`,
         vendorId: quote2Vendor,
         vendorName: vendors.find(v => v.id === quote2Vendor)?.name || '',
-        items: quotingPO.items.map(item => ({ sku: item.sku, unitPrice: parseFloat(quote2Price) / quotingPO.items.reduce((sum, i) => sum + i.qty, 0), leadTime: quote2Valid || '7 dias' })),
+        items: quotingPO.items.map(item => ({ sku: item.sku, unitPrice: parseFloat(quote2Price) / quotingPO.items.reduce((sum, i) => sum + i.qty, 0), leadTime: quote2Valid ? '7 dias' : '' })),
         totalValue: parseFloat(quote2Price),
         validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
         notes: quote2Notes,
@@ -239,7 +486,7 @@ export const PurchaseOrders: React.FC<PurchaseOrdersProps> = ({
         id: `Q3-${Date.now() + 2}`,
         vendorId: quote3Vendor,
         vendorName: vendors.find(v => v.id === quote3Vendor)?.name || '',
-        items: quotingPO.items.map(item => ({ sku: item.sku, unitPrice: parseFloat(quote3Price) / quotingPO.items.reduce((sum, i) => sum + i.qty, 0), leadTime: quote3Valid || '7 dias' })),
+        items: quotingPO.items.map(item => ({ sku: item.sku, unitPrice: parseFloat(quote3Price) / quotingPO.items.reduce((sum, i) => sum + i.qty, 0), leadTime: quote3Valid ? '7 dias' : '' })),
         totalValue: parseFloat(quote3Price),
         validUntil: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toLocaleDateString('pt-BR'),
         notes: quote3Notes,
@@ -335,6 +582,8 @@ export const PurchaseOrders: React.FC<PurchaseOrdersProps> = ({
         </button>
       </div>
 
+
+
       <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200/60 dark:border-slate-800 shadow-sm overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full text-left">
@@ -414,7 +663,7 @@ export const PurchaseOrders: React.FC<PurchaseOrdersProps> = ({
                       {order.status === 'pendente' && user.role === 'admin' && (
                         <>
                           <button
-                            onClick={() => onReject(order.id)}
+                            onClick={() => setRejectionOrderId(order.id)}
                             className="px-4 py-2 bg-red-500 text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-red-600 transition-all active:scale-95"
                           >
                             Rejeitar
@@ -706,11 +955,11 @@ export const PurchaseOrders: React.FC<PurchaseOrdersProps> = ({
 
       {viewingOrder && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in">
-          <div className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-[3.5rem] shadow-2xl p-10 animate-in zoom-in-95 border border-slate-100 dark:border-slate-800">
+          <div className="bg-white dark:bg-slate-900 w-full max-w-4xl rounded-[3.5rem] shadow-2xl p-10 animate-in zoom-in-95 border border-slate-100 dark:border-slate-800 relative">
             <div className="flex items-center justify-between mb-10">
               <div>
-                <h3 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">Detalhamento {viewingOrder.id}</h3>
-                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Dados da Requisição de Compra</p>
+                <h3 className="text-3xl font-black text-slate-800 dark:text-white tracking-tight">Detalhamento {viewingOrder.id}</h3>
+                <p className="text-xs font-black text-slate-400 uppercase tracking-widest mt-1">Gestão Completa do Fluxo de Suprimentos</p>
               </div>
               <button onClick={() => setViewingOrder(null)} className="size-14 flex items-center justify-center bg-slate-50 dark:bg-slate-800 rounded-2xl text-slate-400 hover:text-red-500 transition-all border border-slate-100 dark:border-slate-700">
                 <svg xmlns="http://www.w3.org/2000/svg" className="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -719,6 +968,9 @@ export const PurchaseOrders: React.FC<PurchaseOrdersProps> = ({
                 </svg>
               </button>
             </div>
+
+            <StatusProgressBar order={viewingOrder} />
+
             <div className="space-y-4 max-h-[50vh] overflow-y-auto pr-2 scrollbar-hide">
               {viewingOrder.items.map((item, i) => {
                 const originalImg = inventory.find(inv => inv.sku === item.sku)?.imageUrl;
@@ -763,7 +1015,7 @@ export const PurchaseOrders: React.FC<PurchaseOrdersProps> = ({
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-md animate-in fade-in">
           <div className="bg-white dark:bg-slate-900 w-full max-w-6xl rounded-[3.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 border border-slate-100 dark:border-slate-800 max-h-[90vh] overflow-y-auto">
             <div className="p-10 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-900 z-10">
-              <div>
+              <div className="flex-1">
                 <h3 className="text-2xl font-black text-slate-800 dark:text-white tracking-tight">
                   {quotationMode === 'analyze' ? 'Análise de Cotações p/ Aprovação' : 'Adicionar Cotações'}
                 </h3>
@@ -771,12 +1023,48 @@ export const PurchaseOrders: React.FC<PurchaseOrdersProps> = ({
                   {quotationMode === 'analyze' ? `Revisão do Pedido ${quotingPO.id}` : `Pedido ${quotingPO.id} - 3 Fornecedores Obrigatórios`}
                 </p>
               </div>
-              <button onClick={() => { setIsQuotationModalOpen(false); resetQuotationForm(); }} className="size-12 flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-2xl text-slate-400 hover:text-red-500 transition-all">
-                <svg xmlns="http://www.w3.org/2000/svg" className="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <path d="M18 6 6 18" />
-                  <path d="m6 6 12 12" />
-                </svg>
-              </button>
+
+              <div className="flex items-center gap-4">
+                <button
+                  onClick={() => { setIsQuotationModalOpen(false); resetQuotationForm(); }}
+                  className="px-6 py-3 bg-white dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all"
+                >
+                  Cancelar
+                </button>
+
+                {quotationMode === 'edit' ? (
+                  <button
+                    onClick={handleSubmitQuotations}
+                    className="px-8 py-3 bg-amber-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-[0.2em] shadow-xl shadow-amber-500/20 hover:bg-amber-600 transition-all active:scale-95"
+                  >
+                    Salvar Cotações
+                  </button>
+                ) : (
+                  <div className="flex gap-3">
+                    <button
+                      onClick={() => { setRejectionOrderId(quotingPO.id); setIsQuotationModalOpen(false); resetQuotationForm(); }}
+                      className="px-6 py-3 bg-red-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-red-500/20 hover:bg-red-600 transition-all active:scale-95"
+                    >
+                      Rejeitar
+                    </button>
+                    <button
+                      onClick={() => { onApprove(quotingPO.id); setIsQuotationModalOpen(false); resetQuotationForm(); }}
+                      className="px-8 py-3 bg-green-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest shadow-xl shadow-green-500/20 hover:bg-green-600 transition-all active:scale-95"
+                    >
+                      Aprovar Agora
+                    </button>
+                  </div>
+                )}
+
+                <div className="w-px h-8 bg-slate-100 dark:bg-slate-800 mx-2" />
+
+                <button onClick={() => { setIsQuotationModalOpen(false); resetQuotationForm(); }} className="size-12 flex items-center justify-center bg-slate-100 dark:bg-slate-800 rounded-2xl text-slate-400 hover:text-red-500 transition-all">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M18 6 6 18" />
+                    <path d="m6 6 12 12" />
+                  </svg>
+                </button>
+              </div>
             </div>
 
             <div className="px-10 mb-2">
@@ -994,28 +1282,7 @@ export const PurchaseOrders: React.FC<PurchaseOrdersProps> = ({
               </div>
             </div>
 
-            <div className="p-10 bg-slate-50/50 dark:bg-slate-800/30 border-t border-slate-100 dark:border-slate-800 flex gap-6">
-              <button onClick={() => { setIsQuotationModalOpen(false); resetQuotationForm(); }} className="flex-1 py-5 bg-white dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700 rounded-3xl text-[11px] font-black uppercase tracking-widest hover:bg-slate-100 transition-all">Cancelar</button>
-
-              {quotationMode === 'edit' ? (
-                <button onClick={handleSubmitQuotations} className="flex-[2] py-5 bg-amber-500 text-white rounded-3xl text-[11px] font-black uppercase tracking-[0.3em] shadow-2xl shadow-amber-500/30 hover:bg-amber-600 transition-all active:scale-95">Salvar Cotações</button>
-              ) : (
-                <>
-                  <button
-                    onClick={() => { onReject(quotingPO.id); setIsQuotationModalOpen(false); resetQuotationForm(); }}
-                    className="flex-1 py-5 bg-red-500 text-white rounded-3xl text-[11px] font-black uppercase tracking-[0.3em] shadow-2xl shadow-red-500/30 hover:bg-red-600 transition-all active:scale-95"
-                  >
-                    Rejeitar Pedido
-                  </button>
-                  <button
-                    onClick={() => { onApprove(quotingPO.id); setIsQuotationModalOpen(false); resetQuotationForm(); }}
-                    className="flex-[2] py-5 bg-green-500 text-white rounded-3xl text-[11px] font-black uppercase tracking-[0.3em] shadow-2xl shadow-green-500/30 hover:bg-green-600 transition-all active:scale-95"
-                  >
-                    Aprovar Agora
-                  </button>
-                </>
-              )}
-            </div>
+            {/* Footer removed to move buttons to header */}
           </div>
         </div>
       )}
@@ -1060,6 +1327,63 @@ export const PurchaseOrders: React.FC<PurchaseOrdersProps> = ({
             <div className="mt-8 flex gap-4">
               <button onClick={() => { setIsSendModalOpen(false); setVendorOrderNum(''); }} className="flex-1 py-4 bg-slate-100 dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700 rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all">Cancelar</button>
               <button onClick={handleConfirmSend} disabled={!vendorOrderNum.trim()} className="flex-1 py-4 bg-green-500 text-white rounded-2xl text-[11px] font-black uppercase tracking-widest hover:bg-green-600 transition-all active:scale-95 disabled:opacity-50">Confirmar Envio</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Modal de Motivo da Rejeição */}
+      {rejectionOrderId && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-slate-900 rounded-3xl shadow-2xl w-full max-w-md overflow-hidden border border-slate-200 dark:border-slate-800 animate-in fade-in zoom-in duration-300">
+            <div className="p-8">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="p-3 bg-red-100 dark:bg-red-900/30 rounded-2xl">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="size-6 text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <circle cx="12" cy="12" r="10" />
+                    <line x1="15" y1="9" x2="9" y2="15" />
+                    <line x1="9" y1="9" x2="15" y2="15" />
+                  </svg>
+                </div>
+                <div>
+                  <h3 className="text-xl font-black text-slate-800 dark:text-white uppercase tracking-tight">Motivo da Rejeição</h3>
+                  <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">Pedido: {rejectionOrderId}</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Descreva o motivo detalhado</label>
+                  <textarea
+                    value={rejectionReason}
+                    onChange={(e) => setRejectionReason(e.target.value)}
+                    placeholder="Ex: Cotações acima do orçamento previsto, fornecedor sem estoque, etc..."
+                    className="w-full h-32 px-4 py-3 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-2xl text-sm font-medium focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all resize-none outline-none dark:text-white"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-3 mt-8">
+                <button
+                  onClick={() => {
+                    setRejectionOrderId(null);
+                    setRejectionReason('');
+                  }}
+                  className="flex-1 px-6 py-4 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+                >
+                  Cancelar
+                </button>
+                <button
+                  onClick={() => {
+                    onReject(rejectionOrderId, rejectionReason);
+                    setRejectionOrderId(null);
+                    setRejectionReason('');
+                  }}
+                  disabled={!rejectionReason.trim()}
+                  className="flex-1 px-6 py-4 bg-red-500 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest hover:bg-red-600 transition-all shadow-lg shadow-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Confirmar Rejeição
+                </button>
+              </div>
             </div>
           </div>
         </div>

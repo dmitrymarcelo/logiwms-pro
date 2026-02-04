@@ -8,14 +8,7 @@ interface DashboardProps {
   activities: Activity[];
 }
 
-const productivityData = [
-  { name: '08:00', value: 40 },
-  { name: '10:00', value: 75 },
-  { name: '12:00', value: 35 },
-  { name: '14:00', value: 85 },
-  { name: '16:00', value: 90 },
-  { name: '18:00', value: 55 },
-];
+const productivityData = [];
 
 const KPI_IMAGES = {
   alerta: 'https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=400&q=80',
@@ -49,36 +42,36 @@ export const Dashboard: React.FC<DashboardProps> = ({ inventory, activities }) =
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4 lg:gap-6">
         {dynamicKpis.map((kpi, idx) => (
-          <div key={idx} className="relative h-40 rounded-[2rem] overflow-hidden group shadow-lg hover:shadow-2xl transition-all duration-500 cursor-pointer">
+          <div key={idx} className="relative h-32 sm:h-40 rounded-3xl sm:rounded-[2rem] overflow-hidden group shadow-lg hover:shadow-2xl transition-all duration-500 cursor-pointer">
             <div className="absolute inset-0">
               <img src={kpi.bg} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="" />
               <div className="absolute inset-0 bg-gradient-to-br from-slate-900/90 via-slate-900/60 to-slate-900/40"></div>
             </div>
 
-            <div className="relative z-10 p-6 h-full flex flex-col justify-between">
+            <div className="relative z-10 p-5 sm:p-6 h-full flex flex-col justify-between">
               <div className="flex justify-between items-start">
               </div>
               <div>
-                <p className="text-white/60 text-[10px] font-black uppercase tracking-widest mb-1">{kpi.label}</p>
-                <h3 className="text-3xl font-black tracking-tighter text-white">{kpi.value}</h3>
+                <p className="text-white/60 text-[9px] sm:text-[10px] font-black uppercase tracking-widest mb-0.5 sm:mb-1">{kpi.label}</p>
+                <h3 className="text-2xl sm:text-3xl font-black tracking-tighter text-white">{kpi.value}</h3>
               </div>
             </div>
           </div>
         ))}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-8 space-y-8">
-          <div className="bg-white dark:bg-slate-900 p-8 rounded-[2.5rem] border border-slate-200/60 dark:border-slate-800 shadow-sm">
-            <div className="flex items-center justify-between mb-10">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 lg:gap-8">
+        <div className="lg:col-span-8 space-y-6 lg:space-y-8">
+          <div className="bg-white dark:bg-slate-900 p-6 lg:p-8 rounded-[2rem] lg:rounded-[2.5rem] border border-slate-200/60 dark:border-slate-800 shadow-sm">
+            <div className="flex items-center justify-between mb-8 lg:mb-10">
               <div>
-                <h3 className="text-xl font-black tracking-tight text-slate-800 dark:text-white">Vazão de Operações</h3>
-                <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Throughput em tempo real</p>
+                <h3 className="text-lg lg:text-xl font-black tracking-tight text-slate-800 dark:text-white">Vazão de Operações</h3>
+                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest mt-1">Throughput em tempo real</p>
               </div>
             </div>
-            <div className="h-[300px]">
+            <div className="h-[250px] lg:h-[300px]">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={productivityData}>
                   <defs>

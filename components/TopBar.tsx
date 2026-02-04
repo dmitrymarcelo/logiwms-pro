@@ -10,6 +10,7 @@ interface TopBarProps {
   notifications: AppNotification[];
   onMarkAsRead: (id: string) => void;
   onMarkAllAsRead: () => void;
+  onMobileMenuToggle: () => void;
 }
 
 export const TopBar: React.FC<TopBarProps> = ({
@@ -20,7 +21,8 @@ export const TopBar: React.FC<TopBarProps> = ({
   onLogout,
   notifications,
   onMarkAsRead,
-  onMarkAllAsRead
+  onMarkAllAsRead,
+  onMobileMenuToggle
 }) => {
   const [isNotificationsOpen, setIsNotificationsOpen] = React.useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = React.useState(false);
@@ -28,12 +30,22 @@ export const TopBar: React.FC<TopBarProps> = ({
   const unreadCount = notifications.filter(n => !n.read).length;
 
   return (
-    <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111922] px-6 lg:px-8 flex items-center justify-between sticky top-0 z-40">
-      <div className="flex items-center gap-4 flex-1">
-        <h2 className="text-sm font-black text-primary uppercase tracking-widest">{title}</h2>
+    <header className="h-16 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-[#111922] px-4 lg:px-8 flex items-center justify-between sticky top-0 z-40">
+      <div className="flex items-center gap-3 lg:gap-4 flex-1">
+        <button
+          onClick={onMobileMenuToggle}
+          className="lg:hidden p-2 -ml-2 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all active:scale-95"
+        >
+          <svg xmlns="http://www.w3.org/2000/svg" className="size-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <line x1="3" y1="12" x2="21" y2="12" />
+            <line x1="3" y1="6" x2="21" y2="6" />
+            <line x1="3" y1="18" x2="21" y2="18" />
+          </svg>
+        </button>
+        <h2 className="text-[11px] lg:text-sm font-black text-primary uppercase tracking-[0.15em] lg:tracking-widest truncate">{title}</h2>
       </div>
 
-      <div className="flex items-center gap-4">
+      <div className="flex items-center gap-1 sm:gap-4">
         <button
           onClick={toggleDarkMode}
           className="p-2 text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-full transition-colors active:scale-95"
