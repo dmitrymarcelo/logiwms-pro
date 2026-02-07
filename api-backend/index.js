@@ -92,9 +92,9 @@ const buildQuery = (table, queryParams) => {
 
 // --- Segurança e Auditoria (OWASP Guard) ---
 const TABLE_WHITELIST = [
-    'users', 'warehouses', 'inventory', 'cyclic_batches',
+    'users', 'warehouses', 'inventory', 'cyclic_batches', 'cyclic_counts',
     'vendors', 'vehicles', 'purchase_orders', 'movements',
-    'notifications', 'material_requests'
+    'notifications', 'material_requests', 'cost_centers'
 ];
 
 const validateTable = (table) => TABLE_WHITELIST.includes(table);
